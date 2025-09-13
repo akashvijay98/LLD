@@ -1,5 +1,6 @@
-import java.util.concurrent.TimeUnit;
+// Token Bucket rate limiter
 
+import java.util.concurrent.TimeUnit;
 public class TokenBucket {
 
     private final long capacity;
@@ -59,5 +60,55 @@ public class TokenBucket {
         for (int i = 0; i < 3; i++) {
              System.out.println("Request " + (i + 1) + ": " + (limiter.allow() ? "Allowed" : "Denied"));
         }
+    }
+}
+
+
+// Fixed Window rate limiter 
+
+public class FixedWindowRateLimiter {
+
+    private final int maxRequests;       // Max requests allowed in the window
+    private final long windowInterval;   // The window size in milliseconds
+    
+    private int requestCount;            // Counter for requests in the current window
+    private long windowStartTime;        // The start time of the current window
+
+    /**
+     * Constructor for the rate limiter.
+     * @param maxRequests The maximum number of requests allowed in a window.
+     * @param windowIntervalInMillis The time window in milliseconds.
+     */
+    public FixedWindowRateLimiter(int maxRequests, long windowIntervalInMillis) {
+        this.maxRequests = maxRequests;
+        this.windowInterval = windowIntervalInMillis;
+        this.requestCount = 0;
+        this.windowStartTime = System.currentTimeMillis();
+    }
+
+    /**
+     * Determines if a request should be allowed.
+     * This method is synchronized to ensure thread safety.
+     * @return true if the request is allowed, false otherwise.
+     */
+    public synchronized boolean allow() {
+        long currentTime = System.currentTimeMillis();
+
+        // Check if the window has expired
+        if (currentTime - windowStartTime > windowInterval) {
+            // If it has, start a new window from the current time
+            this.windowStartTime = currentTime;
+            this.requestCount = 1; // This is the first request in the new window
+            return true;
+        }
+
+        // If still within the window, check the count
+        if (requestCount < maxRequests) {
+            this.requestCount++;
+            return true;
+        }
+
+        // If the count has been reached, deny the request
+        return false;
     }
 }
