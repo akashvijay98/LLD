@@ -64,6 +64,50 @@ public class TokenBucket {
 }
 
 
+// Sliding Window Rate Limiter
+import java.util.Deque;
+import java.util.LinkedList;
+
+public class SlidingWindowLogRateLimiter {
+
+    private final int maxRequests;      // Max requests allowed in the window
+    private final long windowInterval;  // The window size in milliseconds
+    
+    // This queue stores the timestamps of requests in the current window.
+    private final Deque<Long> requestTimestamps;
+
+    public SlidingWindowLogRateLimiter(int maxRequests, long windowIntervalInMillis) {
+        this.maxRequests = maxRequests;
+        this.windowInterval = windowIntervalInMillis;
+        this.requestTimestamps = new LinkedList<>();
+    }
+
+    /**
+     * Determines if a request should be allowed.
+     * This method is synchronized to ensure thread safety.
+     * @return true if the request is allowed, false otherwise.
+     */
+    public synchronized boolean allow() {
+        long currentTime = System.currentTimeMillis();
+
+        // 1. Slide the window: Remove all timestamps that are outside the current window.
+        while (!requestTimestamps.isEmpty() && currentTime - requestTimestamps.peekFirst() >= windowInterval) {
+            requestTimestamps.pollFirst();
+        }
+        
+        // 2. Check the limit: If the number of requests in the window is less than the max, allow it.
+        if (requestTimestamps.size() < maxRequests) {
+            requestTimestamps.addLast(currentTime);
+            return true;
+        }
+        
+        // 3. Deny the request if the limit has been reached.
+        return false;
+    }
+}
+
+
+
 // Fixed Window rate limiter 
 
 public class FixedWindowRateLimiter {
